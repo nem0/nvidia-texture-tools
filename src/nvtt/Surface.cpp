@@ -44,6 +44,7 @@
 #include "nvthread/ParallelFor.h"
 
 #include "nvcore/Array.inl"
+#include "nvcore/StdStream.h"
 
 #include <float.h>
 #include <string.h> // memset, memcpy
@@ -562,6 +563,88 @@ void Surface::range(int channel, float * rangeMin, float * rangeMax, int alpha_c
 
     if (rangeMin) *rangeMin = range.x;
     if (rangeMax) *rangeMax = range.y;
+}
+bool Surface::load(const char * fileName, const unsigned char* mem, int size, bool * hasAlpha) {
+    nv::MemoryInputStream float_stream(mem, size);
+	AutoPtr<FloatImage> img(ImageIO::loadFloat(fileName, float_stream));
+    if (img == NULL) {
+        // Try loading as DDS.
+        if (nv::strEqual(nv::Path::extension(fileName), ".dds")) {
+            nv::DirectDrawSurface dds;
+			if (dds.load(new nv::MemoryInputStream(mem, size))) {
+                if (dds.header.isBlockFormat()) {
+                    int w = dds.surfaceWidth(0);
+                    int h = dds.surfaceHeight(0);
+                    uint size = dds.surfaceSize(0);
+
+                    void * data = malloc(size);
+                    dds.readSurface(0, 0, data, size);
+
+                    // @@ Handle all formats! @@ Get nvtt format from dds.surfaceFormat() ?
+
+                    if (dds.header.hasDX10Header()) {
+                        if (dds.header.header10.dxgiFormat == DXGI_FORMAT_BC6H_UF16) {
+                            this->setImage2D(nvtt::Format_BC6, nvtt::Decoder_D3D10, w, h, data);
+                        }
+                        else {
+                            // @@
+							free(data);
+                            return false;
+                        }
+                    }
+                    else {
+                        uint fourcc = dds.header.pf.fourcc;
+                        if (fourcc == FOURCC_DXT1) {
+                            this->setImage2D(nvtt::Format_BC1, nvtt::Decoder_D3D10, w, h, data);
+                        }
+                        else if (fourcc == FOURCC_DXT3) {
+                            this->setImage2D(nvtt::Format_BC2, nvtt::Decoder_D3D10, w, h, data);
+                        }
+                        else if (fourcc == FOURCC_DXT5) {
+                            this->setImage2D(nvtt::Format_BC3, nvtt::Decoder_D3D10, w, h, data);
+                        }
+                        else {
+                            // @@ 
+							free(data);
+                            return false;
+                        }
+                    }
+
+                    free(data);
+                }
+                else {
+                    Image img;
+                    dds.mipmap(&img, /*face=*/0, /*mipmap=*/0);
+
+                    int w = img.width();
+                    int h = img.height();
+                    int d = img.depth();
+
+                    // @@ Add support for all pixel formats.
+
+                    this->setImage(nvtt::InputFormat_BGRA_8UB, w, h, d, img.pixels());
+                }
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    detach();
+
+    if (hasAlpha != NULL) {
+        *hasAlpha = (img->componentCount() == 4);
+    }
+
+    // @@ Have loadFloat allocate the image with the desired number of channels.
+    img->resizeChannelCount(4); // Block compressors expect a 4 channel texture.
+
+    delete m->image;
+    m->image = img.release();
+
+    return true;
 }
 
 bool Surface::load(const char * fileName, bool * hasAlpha/*= NULL*/)

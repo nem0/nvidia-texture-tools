@@ -11,7 +11,7 @@
 #define HAVE_OPENMP
 #endif
 
-#define NV_HAVE_STBIMAGE
+//#define NV_HAVE_STBIMAGE
 /*#if !defined(_M_X64)
 //#define NV_HAVE_FREEIMAGE
 #define NV_HAVE_PNG
