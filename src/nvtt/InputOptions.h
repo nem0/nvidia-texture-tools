@@ -71,6 +71,8 @@ namespace nvtt
         bool convertToNormalMap;
         nv::Vector4 heightFactors;
         nv::Vector4 bumpFrequencyScale;
+		float alphaCoverage;
+		int alphaCoverageChannel;
 
         // Adjust extents.
         uint maxExtent;

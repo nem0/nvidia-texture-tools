@@ -120,6 +120,8 @@ void InputOptions::reset()
 
     m.maxExtent = 0;
     m.roundMode = RoundMode_None;
+	m.alphaCoverage = -1;
+	m.alphaCoverageChannel = -1;
 }
 
 
@@ -295,6 +297,12 @@ void InputOptions::setKaiserParameters(float width, float alpha, float stretch)
     m.kaiserWidth = width;
     m.kaiserAlpha = alpha;
     m.kaiserStretch = stretch;
+}
+
+void InputOptions::setAlphaCoverageMipScale(float alpha_ref, int channel)
+{
+	m.alphaCoverage = alpha_ref;
+	m.alphaCoverageChannel = channel;
 }
 
 /// Indicate whether input is a normal map or not.

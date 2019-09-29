@@ -263,6 +263,12 @@ bool Compressor::Private::compress(const InputOptions::Private & inputOptions, c
 
             img.setImage(inputOptions.inputFormat, inputOptions.width, inputOptions.height, inputOptions.depth, inputOptions.images[f]);
 
+			// compute coverage to rescale mips
+			float coverage = 0.5f;
+			if (inputOptions.alphaCoverage > 0) {
+				img.alphaTestCoverage(inputOptions.alphaCoverage, inputOptions.alphaCoverageChannel);
+			}
+
             // To normal map.
             if (inputOptions.convertToNormalMap) {
                 img.toGreyScale(inputOptions.heightFactors.x, inputOptions.heightFactors.y, inputOptions.heightFactors.z, inputOptions.heightFactors.w);
@@ -318,6 +324,9 @@ bool Compressor::Private::compress(const InputOptions::Private & inputOptions, c
                     else {
                         img.buildNextMipmap(inputOptions.mipmapFilter);
                     }
+					if (inputOptions.alphaCoverage > 0) {
+						img.scaleAlphaToCoverage(coverage, inputOptions.alphaCoverage, inputOptions.alphaCoverageChannel);
+					}
                 }
                 nvDebugCheck(img.width() == w);
                 nvDebugCheck(img.height() == h);
